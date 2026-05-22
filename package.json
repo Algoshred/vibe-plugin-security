@@ -6,7 +6,7 @@
   "types": "./dist/index.d.ts",
   "description": "Security lifecycle orchestrator — dispatches to per-stage security providers (secrets, sbom, release-gate, etc.).",
   "engines": {
-    "bun": ">=1.3.0"
+    "bun": ">=1.3.14"
   },
   "author": {
     "name": "Vignesh T.V",

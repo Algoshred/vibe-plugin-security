@@ -21,7 +21,13 @@ import * as path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-export type ToolPlatform = "linux-x64" | "linux-arm64" | "darwin-x64" | "darwin-arm64";
+export type ToolPlatform =
+  | "linux-x64"
+  | "linux-arm64"
+  | "darwin-x64"
+  | "darwin-arm64"
+  | "win32-x64"
+  | "win32-arm64";
 
 export interface ToolDownload {
   url: string;
@@ -45,7 +51,12 @@ export type ToolManifest = Record<string, ToolManifestEntry>;
 
 export function currentPlatform(): ToolPlatform {
   const arch = process.arch === "x64" ? "x64" : "arm64";
-  const osName = process.platform === "darwin" ? "darwin" : "linux";
+  const osName =
+    process.platform === "win32"
+      ? "win32"
+      : process.platform === "darwin"
+        ? "darwin"
+        : "linux";
   return `${osName}-${arch}` as ToolPlatform;
 }
 
@@ -128,17 +139,15 @@ async function fileMatchesSha(
 }
 
 async function whichPath(binary: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const child = spawn("which", [binary], { stdio: ["ignore", "pipe", "ignore"] });
-    let out = "";
-    child.stdout.on("data", (b: Buffer) => (out += b.toString()));
-    child.on("close", (code) => {
-      if (code !== 0) return resolve(null);
-      const p = out.trim();
-      resolve(p || null);
-    });
-    child.on("error", () => resolve(null));
-  });
+  // `Bun.which` works cross-platform: on Windows it consults PATHEXT so the
+  // caller doesn't need to append .exe / .cmd. Wrapping a sync call in a
+  // Promise keeps the function signature aligned with the rest of the file.
+  try {
+    const resolved = Bun.which(binary);
+    return resolved ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function versionMatches(binaryPath: string, matcher: string | undefined): Promise<boolean> {
@@ -212,7 +221,12 @@ async function downloadAndInstall(
     binaryPath = path.join(destDir, binaryName);
     await fs.copyFile(src, binaryPath);
   }
-  await fs.chmod(binaryPath, 0o755);
+  if (process.platform !== "win32") {
+    // chmod is a no-op on Windows (FS doesn't carry the POSIX exec bit) so
+    // we only execute it where it matters. Avoids a misleading errno on
+    // certain Windows FS mounts.
+    await fs.chmod(binaryPath, 0o755);
+  }
   await fs.rm(tmp, { recursive: true, force: true });
 
   // Final sha verification on the extracted binary, only if the manifest's
@@ -237,7 +251,17 @@ async function extractTarGz(archive: string, dest: string): Promise<void> {
 }
 
 async function extractZip(archive: string, dest: string): Promise<void> {
-  await runProcess("unzip", ["-q", "-o", archive, "-d", dest]);
+  // POSIX preferred: `unzip` is ubiquitous and supports the flags we want.
+  // Windows fallback: `unzip` is rarely on PATH, but `tar.exe` ships with
+  // every supported Windows 10+ and handles .zip transparently. We try the
+  // unzip path first to preserve existing behaviour, then fall back.
+  try {
+    await runProcess("unzip", ["-q", "-o", archive, "-d", dest]);
+    return;
+  } catch (err) {
+    if (process.platform !== "win32") throw err;
+    await runProcess("tar", ["-xf", archive, "-C", dest]);
+  }
 }
 
 async function runProcess(cmd: string, args: string[]): Promise<void> {

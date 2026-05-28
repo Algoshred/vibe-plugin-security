@@ -204,6 +204,11 @@ export class SecurityManager {
     await provider.ensureToolInstalled();
 
     const cfg = await this.fetchVibeConfig(req.vibeId);
+    const enrichedConfig = this.enrichStageConfig(
+      req.stage,
+      req.vibeId,
+      req.config ?? cfg?.stageConfig ?? {},
+    );
 
     const input: SecurityScanInput = {
       runId,
@@ -215,7 +220,7 @@ export class SecurityManager {
       stage: req.stage,
       profile: req.profile ?? cfg?.profile ?? { kind: "unknown", languages: [], runtimes: [] },
       policyLevel: req.policyLevel ?? cfg?.policyLevel ?? "warn",
-      config: req.config ?? cfg?.stageConfig ?? {},
+      config: enrichedConfig,
       workdir,
       onProgress: ({ pct, message }) =>
         this.host?.broadcast?.("security.scan.progress", { runId, pct, message }),
@@ -279,6 +284,44 @@ export class SecurityManager {
     if (policyLevel === "advisory") return critical + high > 0 ? "warn" : "pass";
     if (policyLevel === "warn") return critical > 0 ? "fail" : high > 0 ? "warn" : "pass";
     return critical + high > 0 ? "fail" : "pass";
+  }
+
+  /**
+   * Enrich the scan input config for stages that need cross-run context.
+   *
+   * For `promote.prod` we look up the upstream scan run (typically the
+   * preceding `build` stage SBOM scan) and inject its findings + summary
+   * into config so the release-gate provider can evaluate the policy
+   * locally without round-tripping to a backend. The caller is expected
+   * to set `config.upstreamScanRunId` to the build run's id.
+   */
+  private enrichStageConfig(
+    stage: SecurityStage,
+    vibeId: string,
+    incoming: Record<string, unknown>,
+  ): Record<string, unknown> {
+    if (stage !== "promote.prod") return incoming;
+    const upstreamScanRunId = incoming.upstreamScanRunId as string | undefined;
+    if (!upstreamScanRunId) return incoming;
+    const upstreamRun = this.store.getRun(upstreamScanRunId);
+    const upstreamFindings = this.store
+      .listFindings({ vibeId })
+      .filter((f) => f.scanRunId === upstreamScanRunId)
+      .map((f) => ({
+        fingerprint: f.fingerprint,
+        ruleId: f.ruleId,
+        title: f.title,
+        severity: f.severity,
+        category: f.category,
+        status: f.status,
+        cve: f.cve,
+        packageName: f.packageName,
+      }));
+    return {
+      ...incoming,
+      upstreamFindings,
+      upstreamSummary: upstreamRun?.summary,
+    };
   }
 
   private async fetchVibeConfig(vibeId: string): Promise<

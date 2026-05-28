@@ -22,7 +22,7 @@ import { SecurityManager } from "./manager.js";
 import { createSecurityRoutes } from "./routes.js";
 
 const PLUGIN_NAME = "security";
-const PLUGIN_VERSION = "2026.521.1";
+const PLUGIN_VERSION = "2026.527.1";
 
 /**
  * Per-profile state (the `SecurityManager` instance) lives in this

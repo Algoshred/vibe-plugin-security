@@ -1,6 +1,6 @@
 {
   "name": "@vibecontrols/vibe-plugin-security",
-  "version": "2026.527.1",
+  "version": "2026.528.1",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

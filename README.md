@@ -1,5 +1,12 @@
 # @vibecontrols/vibe-plugin-security
 
+<!-- VIBECONTROLS_OSS_HEADER_START -->
+
+> **License**: MIT — see [LICENSE](./LICENSE).
+> **Note**: This plugin is open source. The `@vibecontrols/agent` runtime that loads it is **not** open source — it is a proprietary product of Burdenoff Consultancy Services Pvt. Ltd. See [vibecontrols.com](https://vibecontrols.com) for the agent.
+
+<!-- VIBECONTROLS_OSS_HEADER_END -->
+
 Security lifecycle orchestrator for the [VibeControls](https://vibecontrols.com) agent. Owns `/api/security/*`, the `vibe security` CLI, the SQLite cache of scan runs and findings, the evidence uploader, and the dispatcher that resolves which security provider to invoke per lifecycle stage.
 
 This plugin does **not** scan anything by itself. It dispatches to concrete provider plugins registered on the agent's service registry under the per-stage provider types `security.secrets`, `security.sbom`, `security.release` (and future per-stage types). The user selects a default provider per stage; the meta plugin handles the rest.
@@ -104,6 +111,29 @@ export const createPlugin: VibePluginFactory = (ctx) => {
 export default createPlugin;
 ```
 
+<!-- VIBECONTROLS_OSS_FOOTER_START -->
+
+---
+
 ## License
 
-Proprietary — Burdenoff Consultancy Services Pvt. Ltd.
+Released under the [MIT License](./LICENSE).
+
+Copyright (c) 2026 Burdenoff Consultancy Services Private Limited, Algoshred Technologies Private Limited, and all its sister companies.
+
+Maintainer: **Vignesh T.V** — <https://github.com/tvvignesh>
+
+## About VibeControls
+
+**VibeControls** is the agentic engineering mission control for AI-native teams. Vibe-plugins extend the VibeControls agent with new providers, tools, sessions, tunnels, storage backends, and security stages.
+
+- Website: <https://vibecontrols.com>
+- Documentation: <https://docs.vibecontrols.com>
+- Plugin SDK: <https://github.com/algoshred/vibecontrols-plugin-sdk>
+- All plugins: <https://github.com/algoshred?q=vibe-plugin-&type=all>
+
+## Important: agent is not open source
+
+The `@vibecontrols/agent` runtime that loads and orchestrates these plugins is **closed source** and proprietary to Burdenoff Consultancy Services Pvt. Ltd. Only the plugin contract and the plugins themselves are released under MIT. If you want a fully self-hostable agent, please open an issue or contact the maintainer.
+
+<!-- VIBECONTROLS_OSS_FOOTER_END -->

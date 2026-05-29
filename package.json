@@ -10,10 +10,9 @@
   },
   "author": {
     "name": "Vignesh T.V",
-    "email": "vignesh@burdenoff.com",
     "url": "https://github.com/tvvignesh"
   },
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "exports": {
     ".": {
       "import": "./dist/index.js",

@@ -13,7 +13,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import * as path from "node:path";
 
 import { BoundLogger } from "@vibecontrols/plugin-sdk";
@@ -80,7 +80,7 @@ export class SecurityManager {
   async init(host: HostServices): Promise<void> {
     this.host = host;
     this.log = new BoundLogger(host.logger, LOG_SOURCE);
-    this.dataDir = host.getDataDir?.() ?? path.join(process.env.HOME ?? ".", ".boff/vibecontrols");
+    this.dataDir = host.getDataDir?.() ?? path.join(homedir(), ".boff/vibecontrols");
     await this.store.init(this.dataDir);
     this.dispatcher.init(host);
     void this.retryUnpushed();

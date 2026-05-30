@@ -52,11 +52,7 @@ export type ToolManifest = Record<string, ToolManifestEntry>;
 export function currentPlatform(): ToolPlatform {
   const arch = process.arch === "x64" ? "x64" : "arm64";
   const osName =
-    process.platform === "win32"
-      ? "win32"
-      : process.platform === "darwin"
-        ? "darwin"
-        : "linux";
+    process.platform === "win32" ? "win32" : process.platform === "darwin" ? "darwin" : "linux";
   return `${osName}-${arch}` as ToolPlatform;
 }
 

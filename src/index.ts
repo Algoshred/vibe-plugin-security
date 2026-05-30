@@ -51,6 +51,20 @@ export const createPlugin: VibePluginFactory = (_ctx: ProfileContext): VibePlugi
     tags: ["backend", "cli", "integration"],
     cliCommand: "security",
     apiPrefix: "/api/security",
+    metaProviders: [
+      {
+        packageName: "@vibecontrols/vibe-plugin-security-secrets-pr",
+        pluginName: "security-secrets-pr",
+      },
+      {
+        packageName: "@vibecontrols/vibe-plugin-security-sbom-build",
+        pluginName: "security-sbom-build",
+      },
+      {
+        packageName: "@vibecontrols/vibe-plugin-security-release-gate",
+        pluginName: "security-release-gate",
+      },
+    ],
     capabilities: {
       storage: "rw",
       broadcast: true,

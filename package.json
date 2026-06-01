@@ -1,6 +1,6 @@
 {
   "name": "@vibecontrols/vibe-plugin-security",
-  "version": "2026.528.1",
+  "version": "2026.601.1",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -49,7 +49,7 @@
     "sanity": "bun run format:check && bun run lint && bun run type:check && bun run test && bun run build"
   },
   "dependencies": {
-    "@vibecontrols/plugin-sdk": "2026.530.2",
+    "@vibecontrols/plugin-sdk": "2026.601.1",
     "elysia": "^1.4.2"
   },
   "devDependencies": {

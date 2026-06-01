@@ -9,9 +9,14 @@
  * pushes them to the backend, and gates releases via the OPA-backed
  * policy decision.
  */
-import { createLifecycleHooks, TelemetryEmitter } from "@vibecontrols/plugin-sdk";
+import {
+  createLifecycleHooks,
+  provisionMetaProviders,
+  TelemetryEmitter,
+} from "@vibecontrols/plugin-sdk";
 import type {
   HostServices,
+  MetaProviderRef,
   ProfileContext,
   VibePlugin,
   VibePluginFactory,
@@ -23,6 +28,25 @@ import { createSecurityRoutes } from "./routes.js";
 
 const PLUGIN_NAME = "security";
 const PLUGIN_VERSION = "2026.527.1";
+
+/**
+ * Provider packages this meta routes to + per-platform defaults. The meta —
+ * not the agent — installs/loads/prereqs/elects them via `provisionProviders`.
+ */
+const SECURITY_PROVIDERS: ReadonlyArray<MetaProviderRef> = [
+  {
+    packageName: "@vibecontrols/vibe-plugin-security-secrets-pr",
+    pluginName: "security-secrets-pr",
+  },
+  {
+    packageName: "@vibecontrols/vibe-plugin-security-sbom-build",
+    pluginName: "security-sbom-build",
+  },
+  {
+    packageName: "@vibecontrols/vibe-plugin-security-release-gate",
+    pluginName: "security-release-gate",
+  },
+];
 
 /**
  * Per-profile state (the `SecurityManager` instance) lives in this
@@ -51,20 +75,9 @@ export const createPlugin: VibePluginFactory = (_ctx: ProfileContext): VibePlugi
     tags: ["backend", "cli", "integration"],
     cliCommand: "security",
     apiPrefix: "/api/security",
-    metaProviders: [
-      {
-        packageName: "@vibecontrols/vibe-plugin-security-secrets-pr",
-        pluginName: "security-secrets-pr",
-      },
-      {
-        packageName: "@vibecontrols/vibe-plugin-security-sbom-build",
-        pluginName: "security-sbom-build",
-      },
-      {
-        packageName: "@vibecontrols/vibe-plugin-security-release-gate",
-        pluginName: "security-release-gate",
-      },
-    ],
+    metaProviders: SECURITY_PROVIDERS,
+    provisionProviders: (hostServices: HostServices) =>
+      provisionMetaProviders(hostServices, SECURITY_PROVIDERS),
     capabilities: {
       storage: "rw",
       broadcast: true,

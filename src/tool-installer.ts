@@ -139,7 +139,7 @@ async function whichPath(binary: string): Promise<string | null> {
   // caller doesn't need to append .exe / .cmd. Wrapping a sync call in a
   // Promise keeps the function signature aligned with the rest of the file.
   try {
-    const resolved = Bun.which(binary);
+    const resolved = Bun.which(binary, { PATH: process.env.PATH });
     return resolved ?? null;
   } catch {
     return null;

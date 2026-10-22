@@ -368,51 +368,6 @@ export class SecurityManager {
     const run = this.store.getRun(runId);
     if (!run) return;
 
-    // Upload evidence first so we can reference IDs in the push.
-    const evidenceRefs: Array<{
-      evidenceId: string;
-      type: string;
-      sha256: string;
-      sizeBytes: number;
-    }> = [];
-    for (const artifact of result.evidence) {
-      const evidenceId = randomUUID();
-      this.store.upsertEvidence({
-        evidenceId,
-        scanRunId: runId,
-        type: artifact.type,
-        localPath: artifact.localPath,
-        sha256: artifact.sha256,
-        sizeBytes: artifact.sizeBytes,
-        uploaded: false,
-      });
-      try {
-        const uploaded = await uploadEvidence(this.host, runId, artifact);
-        this.store.upsertEvidence({
-          evidenceId: uploaded.evidenceId,
-          scanRunId: runId,
-          type: artifact.type,
-          localPath: artifact.localPath,
-          sha256: artifact.sha256,
-          sizeBytes: artifact.sizeBytes,
-          uploaded: true,
-          s3Bucket: uploaded.s3Bucket,
-          s3Key: uploaded.s3Key,
-        });
-        evidenceRefs.push({
-          evidenceId: uploaded.evidenceId,
-          type: GQL_EVIDENCE_TYPES[artifact.type],
-          sha256: artifact.sha256,
-          sizeBytes: artifact.sizeBytes,
-        });
-      } catch (err) {
-        this.log.warn?.(`evidence upload failed for ${runId}`, {
-          error: String(err),
-          type: artifact.type,
-        });
-      }
-    }
-
     const findings = result.findings.map((f) => ({
       fingerprint: f.fingerprint,
       ruleId: f.ruleId,
@@ -452,13 +407,59 @@ export class SecurityManager {
         policyLevel: run.policyLevel.toUpperCase(),
         errorReason: run.errorReason,
         findings,
-        evidenceRefs,
+        // Evidence is uploaded after the push: presigning needs the backend run.
+        evidenceRefs: [],
       },
     });
     if (pushRes.errors && pushRes.errors.length > 0) {
       throw new Error(pushRes.errors.map((e) => e.message).join("; "));
     }
     this.store.updateRunStatus(runId, run.status, { pushed: true });
+
+    // The backend upserts runs by (vibe, commit, stage, provider), so its id
+    // can differ from ours; evidence attaches to the backend's run.
+    const backendRunId = pushRes.data?.pushSecurityScanRun.id ?? runId;
+    await this.uploadRunEvidence(runId, backendRunId, result);
+  }
+
+  /**
+   * Upload every evidence artifact of a pushed run to the workspace file
+   * library. A failed artifact is logged and left un-uploaded locally; it never
+   * fails the run, whose findings are already pushed.
+   */
+  private async uploadRunEvidence(
+    runId: string,
+    backendRunId: string,
+    result: SecurityScanResult,
+  ): Promise<void> {
+    if (!this.host) return;
+    for (const artifact of result.evidence) {
+      const record = {
+        scanRunId: runId,
+        type: artifact.type,
+        localPath: artifact.localPath,
+        sha256: artifact.sha256,
+        sizeBytes: artifact.sizeBytes,
+      };
+      try {
+        const uploaded = await uploadEvidence(this.host, backendRunId, artifact);
+        this.store.upsertEvidence({
+          ...record,
+          evidenceId: uploaded.evidenceId,
+          uploaded: true,
+        });
+      } catch (err) {
+        this.store.upsertEvidence({
+          ...record,
+          evidenceId: randomUUID(),
+          uploaded: false,
+        });
+        this.log.warn?.(`evidence upload failed for ${runId}`, {
+          error: String(err),
+          type: artifact.type,
+        });
+      }
+    }
   }
 
   private async retryUnpushed(): Promise<void> {
@@ -540,14 +541,4 @@ const GQL_STAGES: Record<SecurityStage, string> = {
   "scheduled.rescan": "SCHEDULED_RESCAN",
   "incident.response": "INCIDENT_RESPONSE",
   "archive.offboard": "ARCHIVE_OFFBOARD",
-};
-
-const GQL_EVIDENCE_TYPES: Record<string, string> = {
-  sarif: "SARIF",
-  "sbom-cyclonedx": "SBOM_CYCLONEDX",
-  "sbom-spdx": "SBOM_SPDX",
-  "grype-json": "GRYPE_JSON",
-  "cosign-bundle": "COSIGN_BUNDLE",
-  provenance: "PROVENANCE",
-  "opa-decision": "OPA_DECISION",
 };

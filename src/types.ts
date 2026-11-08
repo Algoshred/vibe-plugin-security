@@ -47,23 +47,12 @@ export const ALL_STAGES: readonly SecurityStage[] = [
 export type SecuritySeverity = "critical" | "high" | "medium" | "low" | "info";
 
 export type SecurityFindingCategory =
-  | "secret"
-  | "vuln"
-  | "sast"
-  | "license"
-  | "policy"
-  | "config"
-  | "supplychain";
+  "secret" | "vuln" | "sast" | "license" | "policy" | "config" | "supplychain";
 
 export type SecurityFindingStatus = "open" | "accepted" | "fixed" | "false_positive" | "suppressed";
 
 export type SecurityScanStatus =
-  | "queued"
-  | "running"
-  | "succeeded"
-  | "failed"
-  | "errored"
-  | "cancelled";
+  "queued" | "running" | "succeeded" | "failed" | "errored" | "cancelled";
 
 export type SecurityScanConclusion = "pass" | "warn" | "fail" | "skipped";
 

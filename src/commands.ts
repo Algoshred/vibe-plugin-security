@@ -55,7 +55,7 @@ export function registerSecurityCommands(program: CommanderLike, host: HostServi
     .command("security:status")
     .description("Look up a scan run by id")
     .option("--run <id>", "Scan run id")
-    .action(async (opts: Record<string, string>) => {
+    .action(async (opts: { run: string }) => {
       const res = await fetch(path(`/scan/${encodeURIComponent(opts.run)}`));
       console.log(JSON.stringify(await res.json(), null, 2));
     });
